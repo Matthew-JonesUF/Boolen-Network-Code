@@ -1,0 +1,193 @@
+
+'''imports necessary functions'''
+import canalizing_function_toolbox_v2_0 as can2
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import cm
+import networkx as nx
+import canalizing_function_toolbox_v13 as can13
+import load_database13 as ld
+import math
+import random
+
+
+
+'''shifts I_network2 in I_CombinedNetwork'''
+def ShiftNetworkI(N, Network1, startIndex, endIndex):
+    index = 0
+    while index < endIndex - startIndex + 1:
+        Network1[startIndex + index] = Network1[startIndex + index] + N*(np.ones(len(Network1[index]), dtype = int))
+        index += 1
+    return Network1
+
+def JoinTwoNetworks(Network1, Network2, Type): #Type 0 is F, Type 1 is I, Type 0 is if it has already been used
+    
+    if Type == 0:
+        return Network1 + Network2
+    
+    
+    elif Type == 1:
+        return Network1 + ShiftNetworkI(len(Network1), Network2, 0, len(Network2) - 1)
+
+
+
+
+
+def DrawWiringDiagram(NetworkI):
+    matrix = can2.adjacency_matrix(NetworkI)
+    G = nx.from_numpy_array(matrix, parallel_edges = False, create_using = nx.MultiDiGraph())
+    layout = nx.drawing.layout.fruchterman_reingold_layout
+    pos_G=layout(G)
+    node_size=100
+    nodes= np.array([pos_G[node] for node in list(G.nodes)]).T
+    title = 'wiring diagram'
+    f,ax = plt.subplots()
+    nx.draw_networkx(G,pos=pos_G,with_labels=True,ax=ax,node_size=node_size,edge_color='#C1C1C1')
+    [x1,x2] = ax.get_xlim()
+    [y1,y2] = ax.get_ylim()
+    ax.set_title(title)
+    ax.plot(nodes[0],nodes[1],'o',color=cm.tab10(0),markersize=5)
+
+def ConnectNetworks(Network, NodeInNetwork, NodesToAdd):
+    index = 0
+    while index < len(NodesToAdd):
+        Network[NodeInNetwork] = np.concatenate((Network[NodeInNetwork], NodesToAdd[index]), axis = None)
+        index += 1
+
+
+
+def AddOnesToF(F, nodeInF, numOfOnes): #works
+    i = 0
+    if numOfOnes > 0:
+        while i < numOfOnes:
+            F[nodeInF] = np.concatenate((F[nodeInF], [1]), axis = None)
+            i += 1
+    else:
+        F[nodeInF] = F[nodeInF]
+    return F
+
+
+
+
+def UpdateF(F, I): 
+    i = 0
+    if len(F) == len(I):
+        while i < len(I):
+                if 2**len(I[i]) - len(F[i]) > 0:
+                    F = AddOnesToF(F, i, 2**len(I[i]) - len(F[i]))
+                    i += 1
+                    
+                else:
+                    i +=1
+    else:
+        i += 1
+
+
+
+
+
+def ILIST(I):
+    #Creates list with all values of I
+    i = 0
+    I_TempList = list()
+    
+    while i < len(I):
+        I_TempList = np.concatenate((I[i], I_TempList), axis = None)
+        i += 1
+    I_TempList = list(I_TempList)
+    
+    
+    #Removes duplicates from I_TempList
+    I_list = list()
+    i = 0
+    
+    while i < len(I_TempList):
+        if I_TempList[i] in I_list:
+            i += 1
+        else:
+            I_list.append(int(I_TempList[i]))
+            i += 1
+    
+    #Outputs I_list
+    return I_list
+
+def RandomlyConnectNetworks(I_1, I_2): #Connections flow from I_1 to I_2
+    ShiftNetworkI(len(I_2), I_1, 0, len(I_1) - 1)
+    I_1list = ILIST(I_1)
+    i = 0
+    while i < len(I_2):
+        k = random.randint(1, len(I_1list))
+        I_2[i] = np.concatenate((I_2[i], random.sample(I_1list, k)), axis = None)
+        i += 1
+    return JoinTwoNetworks(I_2, I_1, Type = 0)
+
+def NumOfAttractors(N_1, n_1, N_2, n_2):
+    #Intital variables
+    i = 0 
+    l_Num_of_Attractors = list()
+    List_of_Num_of_Attractors = list()
+    List_of_F_1 = list()
+    List_of_I_1 = list()
+    List_of_F_2 = list()
+    List_of_I_2 = list()
+    List_of_F_combined = list()
+    List_of_I_combined = list()
+        
+    #Loop to find number of attractors 100 times
+    while i < 100:
+        '''
+        Create Two Random Networks aand Find Their Attractors
+        '''
+        l_Num_of_Attractors = list()
+        [F_1, I_1, degree_1] = can13.random_BN(N = N_1, n = n_1)
+        k = 0
+        k = can2.num_of_attractors(F_1, I_1, len(F_1))
+        l_Num_of_Attractors.append(k[1])
+        List_of_F_1.append(F_1)
+        List_of_I_1.append(I_1)
+        
+        
+        [F_2, I_2, degree_2] = can13.random_BN(N = N_2 , n = n_2)
+        k = 0
+        k = can2.num_of_attractors(F_2, I_2, len(F_2))
+        l_Num_of_Attractors.append(k[1])
+        List_of_F_2.append(F_2)
+        List_of_I_2.append(I_2)
+        
+
+        '''
+        Join the Networks Randomly
+        '''
+        F_combined = JoinTwoNetworks(F_2, F_1, 0)
+        I_combined = RandomlyConnectNetworks(I_1, I_2)  #Connections flow from I_1 to I_2
+        UpdateF(F_combined, I_combined)
+        List_of_F_combined.append(F_combined)
+        List_of_I_combined.append(I_combined)
+        '''
+        Find the Attractors
+        '''
+        k = 0
+        k = can2.num_of_attractors(F_combined, I_combined, len(F_combined))
+        l_Num_of_Attractors.append(k[1])
+        '''
+        Repeat
+        '''
+        List_of_Num_of_Attractors.append(l_Num_of_Attractors)
+        i += 1 
+        
+    '''
+    Returns List of Attractors
+    '''
+    
+    return List_of_Num_of_Attractors, List_of_F_1, List_of_I_1, List_of_F_2, List_of_I_2, List_of_F_combined, List_of_I_combined
+        
+
+
+
+[List_of_Num_of_Attractors, List_of_F_1, List_of_I_1, List_of_F_2, List_of_I_2, List_of_F_combined, List_of_I_combined] = NumOfAttractors(10,3,5,2)
+
+k=0
+F = List_of_F_1[0]
+I = List_of_I_1[0]
+k = can2.num_of_attractors(F, I, 10)
+
