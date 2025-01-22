@@ -30,62 +30,47 @@ import canalizing_function_toolbox_v13 as can13
 import random
 import csv
 import pandas as pd
+import json
 
 
 
 '''Modify Networks'''
-def SortList(List): #Sort a list from lowest to highest number
-
-    
-    #Intial Variables
-    j = 0
-    k = len(List)
-    SortedList = list()
-    
-    
-    while j < k: #Do an iteration for every value in List
-    
-        min_value = 1000 #Set min_value to some large number
-        i = 0 #Set index to 0
-        
-        
-        while i < len(List): #For every value in List
-            if List[i] < min_value: #Find minimum value
-                min_value = List[i]
-            i += 1
-            
-            
-        List.remove(min_value) #Remove that value from the List
-        SortedList.append(min_value) #Add that value to the sorted list
-        
-        j += 1 #Iterate
-        
-    return SortedList
 
 def PercentOfOnes(F, I):
-    k = can2.num_of_attractors(F, I, len(I), EXACT = True)
-    i = 0
-    List_of_attractors = k[0]
+    #determine specific attractors
+    Attractors = can2.num_of_attractors(F, I, len(I), EXACT = True)[0]
+    
+    #Put all attractors into 1 list
+    Temp_Variable = list()
+    for index in range(len(Attractors)):
+        Temp_Variable += Attractors[index]
+    
+    Attractors = Temp_Variable
+    
+    #Define total binary digits and 1's
     TotalDigits = 0
     TotalOnes = 0
-    Temp = 0
     
-    while i < len(k[0]):
-        Attractors = List_of_attractors[i]
-        j = 0
-        while j < len(List_of_attractors[i]):
-            binList = can13.dec2bin(Attractors[j])
-            l = 0
-            while l < len(binList):
-                if binList[l] == 0:
-                    Temp = 0
-                else:
-                    TotalOnes += 1
-                l += 1
-            TotalDigits += len(I)
-            j += 1
-        i += 1
-    return TotalOnes/TotalDigits
+    #For each attractor
+    for index in range(len(Attractors)): 
+
+           
+        #Convert attractor into binary number
+        binList = can13.dec2bin(Attractors[index]) 
+        
+        
+        #Iterate throughh binList (binary number)
+        for index_1 in range(len(binList)): 
+            
+             #determine number of ones and 0's
+             if binList[index_1] != 0: 
+                 TotalOnes += 1
+
+        #add length of I (max length of binary num, ensures extra 0s are counted)
+        TotalDigits += len(I) 
+           
+    return TotalOnes/TotalDigits #returns decimal
+
 
 def DrawWiringDiagram(NetworkI): #Draw a wiring diagram
     matrix = can2.adjacency_matrix(NetworkI)
@@ -101,938 +86,279 @@ def DrawWiringDiagram(NetworkI): #Draw a wiring diagram
     [y1,y2] = ax.get_ylim()
     ax.set_title(title)
     ax.plot(nodes[0],nodes[1],'o',color=cm.tab10(0),markersize=5)
-    
-def ILIST(I):
-    #Creates list with all values of I
-    i = 0
-    I_TempList = list()
-    
-    while i < len(I):
-        I_TempList = np.concatenate((I[i], I_TempList), axis = None)
-        i += 1
-    I_TempList = list(I_TempList)
+
     
     
-    #Removes duplicates from I_TempList
-    I_list = list()
-    i = 0
+  
+def RandomlyConnectNetworks(i_1, i_2, connections): #Connections flow from I_1 to I_2
+    #Make sure original I_1 and I_2 are not changed
+    I_1 = i_1.copy()
+    I_2 = i_2.copy() 
     
-    while i < len(I_TempList):
-        if I_TempList[i] in I_list:
-            i += 1
-        else:
-            I_list.append(int(I_TempList[i]))
-            i += 1
+    for index in range(len(I_1)): 
+        I_1[index] += (len(I_2))*(np.ones(len(I_1[index]), dtype = int)) #Shift each value in network[index] by N
+
     
-    #Outputs I_list
-    return I_list
+
+
+
+
+    #Define list to return
+    I_1List = list()
     
-def ShiftNetworkI(N, Network1, startIndex, endIndex):
+    for index in range(len(I_1)):
+        I_1List += list(I_1[index]) #Create a list with ever value in I (possible duplicates)
+        
+    #Remove duplicates from list and put values in order
+    #Set removes duplicates, list converts to list, sorted orders list
+    I_1List = sorted(list(set(I_1List)))
+    
+    
+    
+    #Define list to return
+    I_2List = list()
+    
+    for index in range(len(I_2)):
+        I_2List += list(I_2[index]) #Create a list with ever value in I (possible duplicates)
+        
+    #Remove duplicates from list and put values in order
+    #Set removes duplicates, list converts to list, sorted orders list
+    I_2List = sorted(list(set(I_2List)))
+
+
+        
+    #Iterate 
     index = 0
-    network1 = Network1.copy() #Ensure Network1 isn't changed
-    while index < endIndex - startIndex + 1: #Shift NetworkI between Start and End Indices
-        network1[startIndex + index] = network1[startIndex + index] + N*(np.ones(len(network1[index]), dtype = int)) #Shift each value in network[index] by N
-        index += 1
-    return network1
+    while index < connections:
+        
+        I_1_Random_Node = random.sample(I_1List, 1) #Pick a node from I_1 to add to I_2
+        I_2_Random_Node = random.sample(I_2List, 1)[0] #Pick a variable from I_2
 
-def JoinTwoNetworks(Network1, Network2, Type): #Type 0 is F, Type 1 is I, Type 0 is if it has already been used
+        
+        if (list(I_2[I_2_Random_Node].copy())).count(I_1_Random_Node[0]) < 1: #Checks to see if there is already a connection 
+        
+        
+            I_2[I_2_Random_Node] = np.concatenate((I_2[I_2_Random_Node], I_1_Random_Node), axis = None) #Connect those nodes to a specific node in I_2
 
-    network1 = Network1.copy()
-    network2 = Network2.copy()
-    
-    if Type == 0:
-        return network1 + network2 #Just combine two functions
-    
-    
-    elif Type == 1:
-        return network1 + ShiftNetworkI(len(network1), network2, 0, len(network2) - 1) #Combines two I's but shifts the second one automatically to ensure no overlap
-    
-def RandomlyConnectNetworks(I_1, I_2, num_of_edges): #Connections flow from I_1 to I_2
-    
-    NewI_1 = I_1.copy()
-    NewI_2 = I_2.copy() #Makes sure original I_1 and I_2 are not changed
-    
-    
-    I_1list = ILIST(NewI_1) #Get a list of all the nodes in I
-    i = 0
-    
-    
-    if num_of_edges == -1:
-        while i < len(NewI_2):
-            k = random.randint(1, len(I_1list)) #Take a random sample of nodes from I_1
-            j = SortList(random.sample(I_1list, k))
-            NewI_2[i] = np.concatenate((NewI_2[i], j), axis = None) #Connect those nodes to a specific node in I_2
-            i += 1
-    else:
+            index += 1
+            
+        else:
+            index = index #Don't progress, repeat
         
-        
-        
-        while i < num_of_edges:
-            
-            
-            k = random.randint(0, len(NewI_2)-1)
-            j = random.sample(I_1list, 1) #Pick a random node
-            l = list(NewI_2[k].copy())
-            
-            if l.count(j[0]) < 1: #check to make sure the node isn't already on NewI_2[k]
-            
-            
-                NewI_2[k] = np.concatenate((NewI_2[k], j), axis = None) #Connect those nodes to a specific node in I_2
-                i += 1
-                
-                
-            else:
-                i = i
-        
-    return JoinTwoNetworks(NewI_2, NewI_1, Type = 0) #Join I_1 and I_2
-
-def AddOnesToF(F, nodeInF, numOfOnes): 
-    i = 0
-    if numOfOnes > 0: #make sure numOfOnes is not 0 to ensure no errors
-        while i < numOfOnes:
-            F[nodeInF] = np.concatenate((F[nodeInF], [1]), axis = None) #add a bunch of ones, specifically numOfOnes to the end of F[index]
-            i += 1
-    else:
-        F[nodeInF] = F[nodeInF] #Just don't do anything if numOfOnes is 0
-    return F
+    return I_2 + I_1
 
 def UpdateF(F, I):  #Designed for canalyzing functions, F_combined in the later part of the code
-    i = 0
-    if len(F) == len(I): #make sure that the length of F and I are the same
-        while i < len(I): #while loop for every value in F
-                if 2**len(I[i]) - len(F[i]) > 0: #Checks to see if len(F[index]) is less than 2^len(I[index]) 
-                    F = AddOnesToF(F, i, 2**len(I[i]) - len(F[i])) #Add enough ones to make len(F[index]) equal to 2^(len(I[index]))
-                    i += 1
-                    
-                else:
-                    i +=1 #If len(F[index]) = 2^(lenI[index]) then just continue
-    else:
-        i += 1 #Don't do anything if len(F) is not len(I)
+    for nodeInF in range(len(I)): #Iterate through every value in F
+        if len(F[nodeInF]) < 2**len(I[nodeInF]): #Checks to see if F has enough 1's
 
-def SortCanalyzingFunctions(F_1_Attractors, F_2_Attractors, AttractorList, List_of_F_1, List_of_F_2, List_of_I_1, List_of_I_2):
-    #index 
-    i = 0
-    
-    #Lists to return
-    F_1 = list()
-    F_2 = list()
-    
-    #Attractor List should be structured [Attractors of F_1, Attractors of F_2]
-    
-    #Iterate through Attractor List
-    while i < 1:
-        TempList = AttractorList[i]
-        #index
-        i = 0 
-        
-        #Lists to return
-        F_1 = list()
-        F_2 = list()
-        I_1 = list()
-        I_2 = list()
-
-        #Attractor List should be structured with each entry being [Attractors of F_1, Attractors of F_2]
-        #To allow F_1_Attractors or F_2_Attractors to be anything, let them be -1
-
-        
-        #Iterate through all values of AttractorList
-        while i < len(AttractorList) - 1:
-            
-            #Create temp list to access entry in Attractor List
-            TempList = AttractorList[i]
-            
-            #Check to see if either F_1_Attractors or F_2_Attractors is equal to -1
-            if F_1_Attractors > 0 and F_2_Attractors > 0:
-                if TempList[0] == F_1_Attractors and TempList[1] == F_2_Attractors:
-                    F_1.append(List_of_F_1[i])
-                    F_2.append(List_of_F_2[i])
-                    I_1.append(List_of_I_1[i])
-                    I_2.append(List_of_I_2[i])
-                    
-            elif F_1_Attractors == -1 and F_2_Attractors > 0:
-                if TempList[1] == F_2_Attractors:
-                    F_1.append(List_of_F_1[i])
-                    F_2.append(List_of_F_2[i])
-                    I_1.append(List_of_I_1[i])
-                    I_2.append(List_of_I_2[i])
-                
-            if F_1_Attractors > 0 and F_2_Attractors == -1:
-                if TempList[0] == F_1_Attractors:
-                    F_1.append(List_of_F_1[i])
-                    F_2.append(List_of_F_2[i])
-                    I_1.append(List_of_I_1[i])
-                    I_2.append(List_of_I_2[i])
-            i += 1
-        
-    return F_1, I_1, F_2, I_2
-
-    
+            #Iterate enough times to add enough 1's to F
+            for index_1 in range(2**len(I[nodeInF]) - len(F[nodeInF])):
+                     F[nodeInF] = np.concatenate((F[nodeInF], [1]), axis = None) #add a bunch of ones
 
 
 
-'''Generate Networks'''
+def CombineTwoNetworks(f_1, i_1, f_2, i_2, connections): #Uses Preset F_1 and F_2, connections flow from F_1 to F_2, 
 
-def GenerateCanalyzingNetworks(N_1, n_1, N_2, n_2):
-    #Intital variables
-    i = 0 
-    l_Num_of_Attractors = list()
-    List_of_Num_of_Attractors = list()
-    List_of_F_1 = list()
-    List_of_I_1 = list()
-    List_of_F_2 = list()
-    List_of_I_2 = list()
-    List_of_F_combined = list()
-    List_of_I_combined = list()
-        
-    #Loop to find number of attractors 100 times
-    while i < 100:
-
-        #Create Two Random Networks aand Find Their Attractors
-
-        l_Num_of_Attractors = list()
-        [F_1, I_1, degree_1] = can13.random_BN(N = N_1, n = n_1)
-        k = 0
-        k = can2.num_of_attractors(F_1, I_1, len(F_1), EXACT = True)
-        l_Num_of_Attractors.append(k[1])
-        List_of_F_1.append(F_1)
-        List_of_I_1.append(I_1)
-
-        
-        
-        [F_2, I_2, degree_2] = can13.random_BN(N = N_2 , n = n_2)
-        k = 0
-        k = can2.num_of_attractors(F_2, I_2, len(F_2), EXACT = True)
-        l_Num_of_Attractors.append(k[1])
-        List_of_F_2.append(F_2)
-        List_of_I_2.append(I_2)
-        
-
-        
-        #Join the Networks Randomly
-        
-        i_1 = I_1.copy()
-        i_1 = ShiftNetworkI(len(I_2), i_1, 0, len(i_1) - 1)
-        F_combined = JoinTwoNetworks(F_2, F_1, 0)
-        I_combined = RandomlyConnectNetworks(i_1, I_2, 1)  #Connections flow from I_1 to I_2
-        UpdateF(F_combined, I_combined)
-        List_of_F_combined.append(F_combined)
-        List_of_I_combined.append(I_combined)
-        
-        
-        #Find the Attractors
-        
-        k = 0
-        k = can2.num_of_attractors(F_combined, I_combined, len(F_combined), EXACT = True)
-        l_Num_of_Attractors.append(k[1])
-        
-        
-        #Repeat
-        
-        List_of_Num_of_Attractors.append(l_Num_of_Attractors)
-        i += 1 
-        
+    #Make copies of networks so that originals are not altered
+    [F_1, I_1, F_2, I_2] = [f_1.copy(), i_1.copy(), f_2.copy(), i_2.copy()]
     
-   # Returns List of Attractors
-    
-    
-    return List_of_Num_of_Attractors, List_of_F_1, List_of_I_1, List_of_F_2, List_of_I_2, List_of_F_combined, List_of_I_combined
-        
-def DefinedCanFunction(Num_of_Connections): #Uses Preset F_1 and F_2, connections flow from F_1 to F_2, 
-    F_1 = [[0, 0, 1, 1, 0, 1, 1, 0],
-           [0, 1, 1, 1, 1, 0, 1, 0],
-           [1, 1, 1, 0, 0, 0, 0, 1],
-           [1, 0, 0, 1, 1, 0, 0, 0],
-           [1, 1, 1, 0, 1, 1, 1, 1],
-           [1, 1, 0, 1, 1, 0, 1, 1],
-           [1, 1, 1, 0, 0, 0, 0, 1],
-           [0, 1, 1, 1, 1, 0, 1, 0],
-           [1, 1, 0, 1, 1, 1, 1, 1],
-           [0, 0, 1, 0, 1, 1, 0, 0]]
-    I_1 = [[2, 4, 8],
-           [0, 7, 9], 
-           [6, 7, 9], 
-           [0, 5, 8], 
-           [0, 5, 7], 
-           [0, 2, 8], 
-           [2, 3, 7],
-           [2, 3, 8], 
-           [0, 1, 7],
-           [3, 4, 5]]
-    F_2 = [[0, 0, 0, 1], 
-           [0, 1, 0, 0], 
-           [1, 1, 0, 1], 
-           [1, 0, 1, 1], 
-           [0, 1, 1, 0]]
-    
-    I_2 = [[2, 3], 
-           [0, 3], 
-           [1, 4], 
-           [1, 2], 
-           [2, 3]]
-    
-    I_1 = ShiftNetworkI(len(I_2), I_1, 0, len(I_1) - 1) #Shift I_1
-    F_combined = JoinTwoNetworks(F_2, F_1, 0) #Join the F's
-    I_combined = RandomlyConnectNetworks(I_1, I_2, Num_of_Connections)  #Connections flow from I_1 to I_2
-    UpdateF(F_combined, I_combined) #Update F to be canalyzing
-   
-    
-    return can2.num_of_attractors(F_combined, I_combined, 15, EXACT = True), F_combined, I_combined
-
-def SetCanFunction(f_1, f_2, i_1, i_2, Num_of_Connections): #Uses Preset F_1 and F_2, connections flow from F_1 to F_2, 
-    F_1 = f_1.copy()
-    I_1 = i_1.copy()
-    F_2 = f_2.copy()
-    I_2 = i_1.copy()
-    
-    I_1 = ShiftNetworkI(len(I_2), I_1, 0, len(I_1) - 1) #Shift I_1
-    F_combined = JoinTwoNetworks(F_2, F_1, 0) #Join the F's
-    I_combined = RandomlyConnectNetworks(I_1, I_2, Num_of_Connections)  #Connections flow from I_1 to I_2
-    UpdateF(F_combined, I_combined) #Update F to be canalyzing
-   
-    
-    return can2.num_of_attractors(F_combined, I_combined, 15, EXACT = True), F_combined, I_combined
-
-def RandomCanFunction(N_1, n_1, N_2, n_2, Num_of_Connections, specific):
-    #Intital variables
-    
-    #Temp Variable, used to add stuff to lists
-    k = 0
-    Num_of_Attractors = list()
-    
-    #Percennt of Ones List
-    BN_1_Percent_Of_Ones = 0
-
-        
-
-    #Create Random BN-1 And Find Its Attractors
-
-    
-    #Define BN-1
-    [F_1, I_1, degree_1] = can13.random_BN(N = N_1, n = n_1) 
-    
-    #Calculate attractors of BN-1
-    k = can2.num_of_attractors(F_1, I_1, len(F_1), EXACT = True)
-    
-    #Add attractors to temp list
-    Num_of_Attractors.append(k[1])
-    Specific_Attractors_F1 = k[0]
-    
-    
-    #Add Percent of Ones to List
-    BN_1_Percent_Of_Ones = PercentOfOnes(F_1, I_1)
-    
-    
-    
-    
-
-
-    #Create Random BN-2 And Find Its Attractors
-
-    
-    #Define BN-2
-    [F_2, I_2, degree_2] = can13.random_BN(N = N_2 , n = n_2)
-    
-    #Calculate attractors for BN-2
-    k = can2.num_of_attractors(F_2, I_2, len(F_2), EXACT = True)
-    
-    #Add attractors to temp list
-    Num_of_Attractors.append(k[1])
-    Specific_Attractors_F2 = k[0]
-        
-       
-        
-
-
-
-
-    #Join the Networks Randomly
-
-    
-    #Ensure I_1 is not altered
-    i_1 = I_1.copy()
-    
-    #Shift I_1 so it can be properly joined at the end of I_2
-    i_1 = ShiftNetworkI(len(I_2), i_1, 0, len(i_1) - 1)
-    
-    #Join F-1 and F-2
-    F_combined = JoinTwoNetworks(F_2, F_1, 0)
-    
-    #Join I_1 and I_2
-    I_combined = RandomlyConnectNetworks(i_1, I_2, Num_of_Connections)  #Connections flow from I_1 to I_2
+    #Join F-1 and F-2 and join I_1 and I_2
+    [F_combined, I_combined] = [F_2 + F_1, RandomlyConnectNetworks(I_1, I_2, connections)]
     
     #Correct the number of 1's to make F_combined canalyzing
     UpdateF(F_combined, I_combined)
     
-    #Calulate the number of attractors of BN-combined
-    k = can2.num_of_attractors(F_combined, I_combined, len(F_combined), EXACT = True)
+
+    return F_combined, I_combined, can2.num_of_attractors(F_combined, I_combined, len(F_combined), EXACT = True) #Return network and attractors
+
+
+def RandomCanFunction(N_1, n_1, N_2, n_2, Num_of_Connections, specific):
+    #Intital Lists
+    Num_of_Attractors = list()
+    Specific_Attractors = list()
     
-    #Add attractors to list
-    Num_of_Attractors.append(k[1])
-    Specific_Attractors_F_combined = k[0]
+    #Percennt of Ones List
+    BN_1_Percent_Of_Ones = 0
+
+    
+    #Define BN-1 and BN-2
+    [F_1, I_1, degree_1] = can13.random_BN(N = N_1, n = n_1) 
+    [F_2, I_2, degree_2] = can13.random_BN(N = N_2 , n = n_2)
+    
+    #Calculate attractors of BN-1 and BN-2
+    [BN_1_Attractors, BN_2_Attractors] = [can2.num_of_attractors(F_1, I_1, len(F_1), EXACT = True), can2.num_of_attractors(F_2, I_2, len(F_2), EXACT = True)]
+    
+    #Determine Percent of Ones
+    BN_1_Percent_Of_Ones = PercentOfOnes(F_1, I_1)
+    
         
-        
-        
+    #Make combined network aand determine attractors
+    [F_combined, I_combined, BN_Combined_Attractors] = CombineTwoNetworks(F_1, I_1, F_2, I_2, Num_of_Connections)
+    
+    
+    #Add attractors to lists
+    Specific_Attractors.append(BN_1_Attractors[0])
+    Specific_Attractors.append(BN_2_Attractors[0])   
+    Specific_Attractors.append(BN_Combined_Attractors[0])
+    
+    Num_of_Attractors.append(BN_1_Attractors[1])
+    Num_of_Attractors.append(BN_2_Attractors[1])
+    Num_of_Attractors.append(BN_Combined_Attractors[1])    
+
+
         
 
     #Return
 
     if specific == True:
-        return F_1, F_2, I_1, I_2, F_combined, I_combined, Num_of_Attractors, BN_1_Percent_Of_Ones, Specific_Attractors_F1, Specific_Attractors_F2, Specific_Attractors_F_combined
+        return F_1, F_2, I_1, I_2, F_combined, I_combined, Num_of_Attractors, Specific_Attractors, BN_1_Percent_Of_Ones
     else:
         return Num_of_Attractors, BN_1_Percent_Of_Ones
 
 
 
 
-'''General SImulations'''
-def SetCanSimulation(f_1, f_2, i_1, i_2):
-    j = 1
-    Average_List = []
-    
-    while j < 21:
-        Temp_List = []
-        i = 0 
-        l = []
-        while i < 1000:
-            [n, F, I] = SetCanFunction(f_1, i_1, f_2, i_2, j)
-            l.append(n[1])
-            i += 1
-            
-        sum_values = sum(l)
-        average = sum_values /1000
-        Temp_List.append(j)
-        Temp_List.append(average)
-        Average_List.append(Temp_List)
-        j += 1
 
-    # Write Average_List to CSV
-    with open('simulation_results.csv', 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(['Index', 'Average'])  # Header row
-        writer.writerows(Average_List)  # Data rows
-
-    return Average_List
-
-
-def DefinedCanSimulation():
-    j = 1
-    Average_List = []
-    
-    while j < 21:
-        Temp_List = []
-        i = 0 
-        l = []
-        while i < 1000:
-            [n, F, I] = DefinedCanFunction(j)
-            l.append(n[1])
-            i += 1
-            
-        sum_values = sum(l)
-        average = sum_values /1000
-        Temp_List.append(j)
-        Temp_List.append(average)
-        Average_List.append(Temp_List)
-        j += 1
-
-    # Write Average_List to CSV
-    with open('simulation_results.csv', 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(['Index', 'Average'])  # Header row
-        writer.writerows(Average_List)  # Data rows
-
-    return Average_List
- 
-    
- 
-'''  #Stuff
-
-def RandomCanSimulation(N_1, n_1, N_2, n_2):
-    #Initial Variables
-    
-    #index for the number of trials. 1000 trials per # of connections
-    j = 1
-    
-    #Average List to return at the end of the program
-    Average_List = list()
-
-    #Run 20 trials, 1 trial per # of connections
-    while j < 21:
-        
-        
-        #Initial Variables for subtrials
-        
-        #index
-        i = 0 
-        
-        #Used for adding multiple values to Average_Lists
-        Temp_List = []
-        
-        #DIfferent Lists for Percent of Ones in upstream
-        list_0_to_10 = []
-        list_10_to_20 = []
-        list_20_to_30 = []
-        list_30_to_40 = []
-        list_40_to_50 = []
-        list_50_to_60 = []
-        list_60_to_70 = []
-        list_70_to_80 = []
-        list_80_to_90 = []
-        list_90_to_100 = []
-        
-        #Start of 1000 subtrials
-        while i < 1000:
-            
-            #Run RandomCanFunction with two networks of size 6
-            [F_1, F_2, I_1, I_2, F_combined, I_combined, Attractors, Percent] = RandomCanFunction(N_1, n_1, N_2, n_2, j, True)
-            Percent *= 100
-            
-            #Sort Attractors into proper list depending on the percent of ones in the upstream
-            
-            if Percent >= 0 and Percent < 10:
-                 list_0_to_10.append(Attractors[2]) 
-                 
-            elif Percent >= 10 and Percent < 20:
-                      list_10_to_20.append(Attractors[2]) 
-                      
-            elif Percent >= 20 and Percent < 30:
-                      list_20_to_30.append(Attractors[2]) 
-                      
-            elif Percent >= 30 and Percent < 40:
-                      list_30_to_40.append(Attractors[2]) 
-                      
-            elif Percent >= 40 and Percent < 50:
-                      list_40_to_50.append(Attractors[2])   
-                    
-            elif Percent >= 50 and Percent < 60:
-                      list_50_to_60.append(Attractors[2])   
-                     
-            elif Percent >= 60 and Percent < 70:
-                      list_60_to_70.append(Attractors[2])    
-                      
-            elif Percent >= 70 and Percent < 80:
-                      list_70_to_80.append(Attractors[2])  
-                      
-            elif Percent >= 80 and Percent < 90:
-                      list_80_to_90.append(Attractors[2])   
-                      
-            elif Percent >= 90 and Percent < 100:
-                      list_90_to_100.append(Attractors[2])    
-                      
-                      
-                      
-                      
-            #Repeat  
-                      
-            i += 1
-            
-        #Take average of each of the percent-lists
-        Temp_List.append(j)
-
-
-
-        #Average 0-10
-        #Find average
-        if len(list_0_to_10) > 0:
-            sum_values = sum(list_0_to_10)
-            average = sum_values / len(list_0_to_10)
-            
-            #Add average to temp list
-            Temp_List.append(average)
-        else:
-            Temp_List.append(-1)
-        
-        
-        
-        #Average 10-20
-        if len(list_10_to_20) > 0:
-            #Find average
-            sum_values = sum(list_10_to_20)
-            average = sum_values / len(list_10_to_20)
-            
-            #Add average to temp list
-            Temp_List.append(average)
-        else:
-            Temp_List.append(-1)
-        
-        
-        
-        #Average 20-30
-        if len(list_20_to_30) > 0:
-            #Find average
-            sum_values = sum(list_20_to_30)
-            average = sum_values / len(list_20_to_30)
-            
-            #Add average to temp list
-            Temp_List.append(average)
-        else:
-            Temp_List.append(-1)
-
-
-
-        #Average 30-40
-        if len(list_30_to_40) > 0:
-            #Find average
-            sum_values = sum(list_30_to_40)
-            average = sum_values / len(list_30_to_40)
-            
-            #Add average to temp list
-            Temp_List.append(average)
-        else:
-            Temp_List.append(-1)
-        
-        
-        #Average 40-50
-        if len(list_40_to_50) > 0:
-            #Find average
-            sum_values = sum(list_40_to_50)
-            average = sum_values / len(list_40_to_50)
-            
-            #Add average to temp list
-            Temp_List.append(average)
-        else:
-            Temp_List.append(-1)
-            
-        
-        
-        #Average 50-60
-        if len(list_50_to_60) > 0:
-            #Find average
-            sum_values = sum(list_50_to_60)
-            average = sum_values / len(list_50_to_60)
-            
-            #Add average to temp list
-            Temp_List.append(average)
-        else:
-            Temp_List.append(-1)
-        
-        
-        
-        #Average 60-70
-        if len(list_60_to_70) > 0:
-            #Find average
-            sum_values = sum(list_60_to_70)
-            average = sum_values / len(list_60_to_70)
-            
-            #Add average to temp list
-            Temp_List.append(average)
-        else:
-            Temp_List.append(-1)
-        
-        
-        
-        #Average 70-80
-        if len(list_70_to_80) > 0:
-            #Find average
-            sum_values = sum(list_70_to_80)
-            average = sum_values / len(list_70_to_80)
-            
-            #Add average to temp list
-            Temp_List.append(average)
-        else:
-            Temp_List.append(-1)
-        
-        
-        #Average 80-90
-        if len(list_80_to_90) > 0:
-            #Find average
-            sum_values = sum(list_80_to_90)
-            average = sum_values / len(list_80_to_90)
-            
-            #Add average to temp list
-            Temp_List.append(average)
-        else:
-            Temp_List.append(-1)
-            
-        
-        
-        #Average 90-100
-        if len(list_90_to_100) > 0:
-            #Find average
-            sum_values = sum(list_90_to_100)
-            average = sum_values / len(list_90_to_100)
-            
-            #Add average to temp list
-            Temp_List.append(average)
-        else:
-            Temp_List.append(-1)
-            
-
-        
-        Average_List.append(Temp_List)
-        j += 1
-
-    # Write Average_List to CSV
-    with open('simulation_results.csv', 'w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(['Connections', '0-10', '10 - 20', '20 - 30', '30 - 40', '40 - 50', '50 - 60', '60 - 70', '70 - 80', '80 - 90', '90 - 100'])  # Header row
-        writer.writerows(Average_List)  # Data rows
-
-    return Average_List
-
-
-
-
-
-
-
-
-def RandomCanSimulation2(N_1, n_1, N_2, n_2):
-    # Initial Variables
-    max_connections = 2  # Number of trials for connections
-    num_trials = 10      # Number of subtrials per connection
-
-    # Dictionary to hold attractor lists per connection
-    connections_dict = {}
-    
-    # Percent range labels
-    percent_ranges = {
-        '0_to_10': [],
-        '10_to_20': [],
-        '20_to_30': [],
-        '30_to_40': [],
-        '40_to_50': [],
-        '50_to_60': [],
-        '60_to_70': [],
-        '70_to_80': [],
-        '80_to_90': [],
-        '90_to_100': []
-    }
-
-    # Run trials for each connection count
-    for j in range(1, max_connections + 1):
-        # Initialize a new list for each connection count in the dictionary
-        connections_dict[j] = {
-            '0_to_10': [],
-            '10_to_20': [],
-            '20_to_30': [],
-            '30_to_40': [],
-            '40_to_50': [],
-            '50_to_60': [],
-            '60_to_70': [],
-            '70_to_80': [],
-            '80_to_90': [],
-            '90_to_100': []
-        }
-
-        # Start of subtrials
-        for i in range(num_trials):
-            # Run RandomCanFunction with two networks of size N_1 and N_2
-            [F_1, I_1, F_2, I_2, F_combined, I_combined, Attractors, Percent] = RandomCanFunction(N_1, n_1, N_2, n_2, j, True)
-
-            # Convert Percent to a percentage value
-            Percent *= 100
-
-            # Append attractors along with F's and I's to the appropriate list based on the percent value
-            data_row = {
-                'Attractors': Attractors,
-                'F_1': F_1, 'I_1': I_1,
-                'F_2': F_2, 'I_2': I_2,
-                'F_combined': F_combined, 'I_combined': I_combined
-            }
-
-            if 0 <= Percent < 10:
-                connections_dict[j]['0_to_10'].append(data_row)
-            elif 10 <= Percent < 20:
-                connections_dict[j]['10_to_20'].append(data_row)
-            elif 20 <= Percent < 30:
-                connections_dict[j]['20_to_30'].append(data_row)
-            elif 30 <= Percent < 40:
-                connections_dict[j]['30_to_40'].append(data_row)
-            elif 40 <= Percent < 50:
-                connections_dict[j]['40_to_50'].append(data_row)
-            elif 50 <= Percent < 60:
-                connections_dict[j]['50_to_60'].append(data_row)
-            elif 60 <= Percent < 70:
-                connections_dict[j]['60_to_70'].append(data_row)
-            elif 70 <= Percent < 80:
-                connections_dict[j]['70_to_80'].append(data_row)
-            elif 80 <= Percent < 90:
-                connections_dict[j]['80_to_90'].append(data_row)
-            elif 90 <= Percent < 100:
-                connections_dict[j]['90_to_100'].append(data_row)
-
-    # Write each percent list per connection count to separate CSV files
-    for num_connections, percent_lists in connections_dict.items():
-        for key, data_list in percent_lists.items():
-            if data_list:  # Only save if the list contains data
-                # Create a dataframe from the data
-                df = pd.DataFrame([{
-                    'Attractor 1': data['Attractors'][0],
-                    'Attractor 2': data['Attractors'][1],
-                    'Attractor 3': data['Attractors'][2],
-                    'F_1': data['F_1'], 'I_1': data['I_1'],
-                    'F_2': data['F_2'], 'I_2': data['I_2'],
-                    'F_combined': data['F_combined'], 'I_combined': data['I_combined']
-                } for data in data_list])
-
-                # Save to CSV
-                df.to_csv(f'connections_{num_connections}_{key}.csv', index=False)
-
-    return connections_dict
-
-
-def RandomCanSimulation3(N_1, n_1, N_2, n_2):
-    # Initial Variables
-    max_connections = 2  # Number of trials for connections
-    num_trials = 10    # Number of subtrials per connection
-
-    # Dictionary to hold attractor lists per connection
-    connections_dict = {}
-    
-    # Percent range labels
-    percent_ranges = {
-        '0_to_10': [],
-        '10_to_20': [],
-        '20_to_30': [],
-        '30_to_40': [],
-        '40_to_50': [],
-        '50_to_60': [],
-        '60_to_70': [],
-        '70_to_80': [],
-        '80_to_90': [],
-        '90_to_100': []
-    }
-
-    # Run trials for each connection count
-    for j in range(1, max_connections + 1):
-        # Initialize a new list for each connection count in the dictionary
-        connections_dict[j] = {
-            '0_to_10': [],
-            '10_to_20': [],
-            '20_to_30': [],
-            '30_to_40': [],
-            '40_to_50': [],
-            '50_to_60': [],
-            '60_to_70': [],
-            '70_to_80': [],
-            '80_to_90': [],
-            '90_to_100': []
-        }
-
-        # Start of subtrials
-        for i in range(num_trials):
-            # Run RandomCanFunction with two networks of size N_1 and N_2
-            [Attractors, Percent] = RandomCanFunction(N_1, n_1, N_2, n_2, j, False)
-
-            # Convert Percent to a percentage value
-            Percent *= 100
-
-            # Append attractors to the appropriate list based on the percent value
-            if 0 <= Percent < 10:
-                connections_dict[j]['0_to_10'].append(Attractors)
-            elif 10 <= Percent < 20:
-                connections_dict[j]['10_to_20'].append(Attractors)
-            elif 20 <= Percent < 30:
-                connections_dict[j]['20_to_30'].append(Attractors)
-            elif 30 <= Percent < 40:
-                connections_dict[j]['30_to_40'].append(Attractors)
-            elif 40 <= Percent < 50:
-                connections_dict[j]['40_to_50'].append(Attractors)
-            elif 50 <= Percent < 60:
-                connections_dict[j]['50_to_60'].append(Attractors)
-            elif 60 <= Percent < 70:
-                connections_dict[j]['60_to_70'].append(Attractors)
-            elif 70 <= Percent < 80:
-                connections_dict[j]['70_to_80'].append(Attractors)
-            elif 80 <= Percent < 90:
-                connections_dict[j]['80_to_90'].append(Attractors)
-            elif 90 <= Percent < 100:
-                connections_dict[j]['90_to_100'].append(Attractors)
-
-    # Write each percent list per connection count to separate CSV files
-    for num_connections, percent_lists in connections_dict.items():
-        for key, attractor_list in percent_lists.items():
-            if attractor_list:  # Only save if the list contains data
-                df = pd.DataFrame(attractor_list, columns=['Attractor 1', 'Attractor 2', 'Attractor 3'])
-                df.to_csv(f'connections_{num_connections}_{key}.csv', index=False)
-
-    return connections_dict
-'''
-
-'''
-
-def RandomCanSimulation4(N_1, n_1, N_2, n_2):
-    # Initial Variables
-    max_connections = 2  # Number of trials for connections
-    num_trials = 10      # Number of subtrials per connection
-
-    # List to store all data for a single CSV file
+#Rewrite
+def Experiment_1_Generate_Networks(Num_Of_Networks): 
     all_data = []
+    for num in range(Num_Of_Networks):
+        
+        #Random N (Nodes) and n (outgoing connections from each node) for networks
+        N = random.randint(3, 5)
+        n = random.randint(1, N-1)
+        
+        #Generate Networks
+        [F, I, degree] = can13.random_BN(N, n)
+        
+        #Make copies, ensures orignials are not changed
+        [f, i] = [F.copy(), I.copy()]
+        
+        #Determine Percent of Ones of Upstream Network
+        Percent = PercentOfOnes(f, i)
+        Percent *= 100
+        
+        #Determine Attractors of Each Network
+        Attractors = can2.num_of_attractors(f, i, len(f), EXACT = True)[1]
 
-    # Percent range labels
-    percent_ranges = {
-        '0_to_10': [],
-        '10_to_20': [],
-        '20_to_30': [],
-        '30_to_40': [],
-        '40_to_50': [],
-        '50_to_60': [],
-        '60_to_70': [],
-        '70_to_80': [],
-        '80_to_90': [],
-        '90_to_100': []
-    }
+        
+        #Append Data
+        all_data.append({  
+            'Percent of 1\'s': Percent,
+            'Attractors': Attractors,
+            'F': list(F), 'I': list(I), 
 
-    # Run trials for each connection count
-    for j in range(1, max_connections + 1):
-        # Start of subtrials
-        for i in range(num_trials):
-            # Run RandomCanFunction with two networks of size N_1 and N_2
-            [F_1, I_1, F_2, I_2, F_combined, I_combined, Attractors, Percent] = RandomCanFunction(N_1, n_1, N_2, n_2, j, True)
-
-            # Convert Percent to a percentage value
-            Percent *= 100
-
-            # Determine the percent range
-            if 0 <= Percent < 10:
-                percent_range = '0_to_10'
-            elif 10 <= Percent < 20:
-                percent_range = '10_to_20'
-            elif 20 <= Percent < 30:
-                percent_range = '20_to_30'
-            elif 30 <= Percent < 40:
-                percent_range = '30_to_40'
-            elif 40 <= Percent < 50:
-                percent_range = '40_to_50'
-            elif 50 <= Percent < 60:
-                percent_range = '50_to_60'
-            elif 60 <= Percent < 70:
-                percent_range = '60_to_70'
-            elif 70 <= Percent < 80:
-                percent_range = '70_to_80'
-            elif 80 <= Percent < 90:
-                percent_range = '80_to_90'
-            elif 90 <= Percent < 100:
-                percent_range = '90_to_100'
-            else:
-                continue  # Skip any out-of-range percentages
-
-            # Append the data row to the all_data list
-            all_data.append({
-                'Percent Range': percent_range,
-                'Attractor 1': Attractors[0],
-                'Attractor 2': Attractors[1],
-                'Attractor 3': Attractors[2],
-                'F_1': F_1, 'I_1': I_1,
-                'F_2': F_2, 'I_2': I_2,
-                'F_combined': F_combined, 'I_combined': I_combined
-            })
-
-    # Create a dataframe from all_data and save to a single CSV file
+        })
+        
+    # Create a dataframe from all_data
     df = pd.DataFrame(all_data)
-    df.to_csv('combined_connections.csv', index=False)
 
+    # Save to CSV
+    csv_filename = 'Experiment 1 Networks.csv'
+    df.to_csv(csv_filename, index=False)
+
+    # Return the DataFrame for further use in Python
     return df
-'''
 
 
+def Connect_Networks(df, Num_of_Networks):
+    #Initialize Dataframe
+    all_data = []
 
+    
+    #repeat Num_of_Networks times
+    for index in range(Num_of_Networks):
+        Network1 = random.randint(0, 10)
+        Network2 = random.randint(0, 10)
+        
+
+        [F_1, I_1, F_2, I_2] = [df.loc[Network1, 'F'], df.loc[Network1, 'I'], df.loc[Network2, 'F'], df.loc[Network2, 'I']]
+
+    
+        for connections in range(1, len(F_1) * len(F_2)): #Repeat for connections between min and max connections (1 and N^2. len(F_1) = N)
+        
+                #Make copies, ensures orignials are not changed
+                [f_1, f_2, i_1, i_2] = [F_1.copy(), F_2.copy(), I_1.copy(), I_2.copy()]
+                
+                #Connect Networks
+                [F_combined, I_combined, BN_Combined_Attractors] = CombineTwoNetworks(f_1, i_1, f_2, i_2, connections)
+               
+                all_data.append({  
+                    'Connections': connections,  # Include the number of connections
+                    'BN Combined_Attractors': BN_Combined_Attractors[1], #Attractors
+                    'F_combined': F_combined, 'I_combined': I_combined #Specific F and I combined
+                })
+                
+
+    # Create a dataframe from all_data
+    df1 = pd.DataFrame(all_data)
+
+    # Save to CSV
+    csv_filename = 'Experiment 1 Combined Networks.csv'
+    df1.to_csv(csv_filename, index=False)
+
+    # Return the dataFrame for further use in Python
+    return df1
+            
+
+def Experiment2():
+    all_data = []
+    for i in range(1000):
+        N1 = random.randint(3, 6)
+        n1 = random.randint(1, N1-1)
+        N2 = random.randint(3, 6)
+        n2 = random.randint(1, N2-1)
+        [F_1, I_1, degree] = can13.random_BN(N1, n1)
+        [F_2, I_2, degree] = can13.random_BN(N2, n2)
+        print(i)
+        for connections in range(1, (N1 * N2)):
+            f_1 = F_1.copy()
+            f_2 = F_2.copy()
+            i_1 = I_1.copy()
+            i_2 = I_2.copy()
+            Percent = PercentOfOnes(F_1, I_1)
+            Percent *= 100
+            
+            BN1_Attractors = can2.num_of_attractors(F_1, I_1, len(F_1), EXACT = True)
+            BN2_Attractors = can2.num_of_attractors(F_1, I_1, len(F_1), EXACT = True)
+            
+            BN1_Attractors = BN1_Attractors[1]
+            BN2_Attractors = BN2_Attractors[1]
+            
+            for j in range(1000):
+                [F_combined, I_combined, BN_Combined_Attractors] = CombineTwoNetworks(f_1, i_1, f_2, i_2, connections)
+                
+                
+
+
+    
+                # Append the data row to the all_data list, including the number of connections
+                all_data.append({  
+                    'Connections': connections,  # Include the number of connections
+                    'Percent of 1\'s': Percent,
+                    'BN1 Attractors': BN1_Attractors,
+                    'BN2 Attractors': BN2_Attractors,
+                    'BN Combined_Attractors': BN_Combined_Attractors[1],
+                    'F_1': F_1, 'I_1': I_1,
+                    'F_2': F_2, 'I_2': I_2,
+                    'F_combined': F_combined, 'I_combined': I_combined
+                })
+    
+    # Create a dataframe from all_data
+    df = pd.DataFrame(all_data)
+
+    # Save to CSV
+    csv_filename = 'Experiment 2.csv'
+    df.to_csv(csv_filename, index=False)
+
+    # Return the DataFrame for further use in Python
+    return df
 
 
 def RandomCanSimulation(N_1, n_1, N_2, n_2):
     # Initial Variables
-    max_connections = 2  # Number of trials for connections
-    num_trials = 10      # Number of subtrials per connection
+    max_connections = 20  # Number of trials for connections
+    num_trials = 1000      # Number of subtrials per connection
 
     # List to store all data for a single CSV file
     all_data = []
@@ -1042,21 +368,21 @@ def RandomCanSimulation(N_1, n_1, N_2, n_2):
         # Start of subtrials
         for i in range(num_trials):
             # Run RandomCanFunction with two networks of size N_1 and N_2
-            [F_1, I_1, F_2, I_2, F_combined, I_combined, Attractors, Percent, Specific_Attractors_F1, Specific_Attractors_F2, Specific_Attractors_F_combined] = RandomCanFunction(N_1, n_1, N_2, n_2, j, True)
+            [F_1, F_2, I_1, I_2, F_combined, I_combined, Num_of_Attractors, Specific_Attractors, BN_1_Percent_Of_Ones] = RandomCanFunction(N_1, n_1, N_2, n_2, j, True)
 
             # Convert Percent to a percentage value
-            Percent *= 100
+            BN_1_Percent_Of_Ones *= 100
 
             # Append the data row to the all_data list, including the number of connections
             all_data.append({  
                 'Connections': j,  # Include the number of connections
-                'Percent of 1\'s': Percent,
-                'Attractor 1': Attractors[0],
-                'Attractor 2': Attractors[1],
-                'Attractor 3': Attractors[2],
-                'F_1 Attractors': Specific_Attractors_F1,
-                'F_2 Attractors': Specific_Attractors_F2,
-                'F_combined Attractors': Specific_Attractors_F_combined,
+                'Percent of 1\'s': BN_1_Percent_Of_Ones,
+                'Num of BN_1 Attractors': Num_of_Attractors[0],
+                'Num of BN_2 Attractors': Num_of_Attractors[1],
+                'Num of BN_Combined Attractors': Num_of_Attractors[2],
+                'BN_1 Attractors': Specific_Attractors[0],
+                'BN_2 Attractors': Specific_Attractors[1],
+                'BN_Combined Attractors': Specific_Attractors[2],
                 'F_1': F_1, 'I_1': I_1,
                 'F_2': F_2, 'I_2': I_2,
                 'F_combined': F_combined, 'I_combined': I_combined
@@ -1066,7 +392,7 @@ def RandomCanSimulation(N_1, n_1, N_2, n_2):
     df = pd.DataFrame(all_data)
 
     # Save to CSV
-    csv_filename = 'combined_connections.csv'
+    csv_filename = 'New_combined_connections_17.csv'
     df.to_csv(csv_filename, index=False)
 
     # Return the DataFrame for further use in Python
@@ -1078,65 +404,277 @@ def RandomCanSimulation(N_1, n_1, N_2, n_2):
 
 
 
-'''Special Simulations'''
 
-def AttractorsSimulations(BN_1_Attractors, BN_2_Attractors, Num_of_Connections): #Put -1 if you don't want restrictions on the attractors
-    #index
-    i = 0 
-    k = 0
-    TotalAttractors = list()
-    
-    [List_of_Num_of_Attractors, List_of_F_1, List_of_I_1, List_of_F_2, List_of_I_2, List_of_F_combined, List_of_I_combined] = GenerateCanalyzingNetworks(6, 3, 6, 3)
-    [F_1, I_1, F_2, I_2] = SortCanalyzingFunctions(BN_1_Attractors, BN_2_Attractors, List_of_Num_of_Attractors, List_of_F_1, List_of_F_2, List_of_I_1, List_of_I_2)
-    
-    while i < len(F_1):
-        I_1[i] = ShiftNetworkI(len(I_2[i]), I_1[i], 0, len(I_1[i]) - 1) #Shift I_1
-        F_combined = JoinTwoNetworks(F_2[i], F_1[i], 0) #Join the F's
-        I_combined = RandomlyConnectNetworks(I_1[i], I_2[i], Num_of_Connections)  #Connections flow from I_1 to I_2
-        UpdateF(F_combined, I_combined) #Update F to be canalyzing
-        k = can2.num_of_attractors(F_combined, I_combined, len(I_combined))
-        TotalAttractors.append(k[1])
-        i += 1 
-    
-    return sum(TotalAttractors)/len(F_1)
-    
     
 '''Visualizing Data'''
 
-def CreateLineGraph(df, x, y):
 
-    # Assuming df is your DataFrame and you want to plot 'Percent of 1's' against 'Connections'
+
+'''
+def CreateLineGraph(x_values, y_values, x_label, y_label, plot_title):
     plt.figure(figsize=(8, 6))
     
     # Plot the data
-    plt.plot(df[x], df[y], marker='o', linestyle='-', color='b')
+    plt.plot(x_values, y_values, marker='o', linestyle='-', color='b')
     
     # Add labels and title
-    plt.xlabel(x)
-    plt.ylabel(y)
-    plt.title(y + ' vs ' +  x)
-    
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.title(plot_title)
+    plt.savefig(plot_title,  dpi=300, bbox_inches='tight')
     # Show the plot
     plt.show()
+'''
+
+
+
+
+
+
+
+
+def CreateLineGraph(x_values, y_values, x_label, y_label, plot_title):
+    plt.figure(figsize=(8, 6))
     
-def CreateBarGraph(df):
-    # Group by number of connections and calculate the mean percent of 1's
-    mean_percent = df.groupby('Connections')['Percent of 1\'s'].mean()
+    # Plot the data
+    plt.plot(x_values, y_values, marker='o', linestyle='-', color='b', label='Data')
+    
+    # Fit a line to the data
+    coefficients = np.polyfit(x_values, y_values, 1)
+    fitted_line = np.polyval(coefficients, x_values)
+    plt.plot(x_values, fitted_line, 'r--', label='Best fit line')
+
+    # Calculate R² value manually
+    y_mean = np.mean(y_values)
+    ss_total = np.sum((y_values - y_mean) ** 2)  # Total sum of squares
+    ss_residual = np.sum((y_values - fitted_line) ** 2)  # Residual sum of squares
+    r_squared = 1 - (ss_residual / ss_total)
+
+    # Display R² value on the plot in a better position and style
+    plt.annotate(f'R² = {r_squared:.4f}', 
+                 xy=(0.70, 0.10),  # Adjusted position to bottom-right
+                 xycoords='axes fraction', 
+                 fontsize=14, 
+                 color='black', 
+                 bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
+    
+    # Add labels and title
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.title(plot_title)
+    plt.legend(loc='upper left')  # Move legend to upper left to avoid overlap
+    
+    # Save and show the plot
+    plt.savefig(plot_title, dpi=300, bbox_inches='tight')
+    plt.show()
+
+# Example usage
+# CreateLineGraph([1, 2, 3, 4], [10, 20, 15, 25], 'Connections', 'Percent of 1\'s', restrict_x_int=True)
+
+
+    
+
+def CreateBarGraph(df, x, y, plot_title, xlabel, ylabel, connections=None, operation=None, min_percent=None, max_percent=None, dummy_x = None):
+    """
+    Creates a bar graph from the given DataFrame with optional filtering based on connections
+    and a 'Percent_of_1\'s' range.
+    
+    Parameters:
+        df (pd.DataFrame): The input DataFrame.
+        x (str): The column for the x-axis.
+        y (str): The column for the y-axis.
+        connections (int): Filter for 'Connections' column (0 for no filtering).
+        operation (str): Operation to perform ('subtract' or 'divide').
+        min_percent (float): Minimum percent to filter 'Percent of 1\'s'.
+        max_percent (float): Maximum percent to filter 'Percent of 1\'s'.
+        
+    Returns:
+        list: The computed mean values as a list.
+    """
+    
+    #Sorts Data based on initial conditions
+    # Filter by 'Connections' if needed
+    if connections is not None:
+        df_filtered = df.copy()
+        df_filtered = df_filtered[df_filtered['Connections'] == connections]
+    else:
+        df_filtered = df.copy()
+
+
+    # Filter by 'Percent_of_1\'s' if min_percent and max_percent are specified
+    if min_percent is not None and max_percent is not None:
+        df_filtered = df_filtered[
+            (df_filtered['Percent of 1\'s'] >= min_percent) &
+            (df_filtered['Percent of 1\'s'] <= max_percent)
+        ]
+
+    # If no data remains after filtering, return early
+    if df_filtered.empty:
+        print("No data points fall within the specified filters.")
+        return []
+
+
+
+    #Change operation between subtract, divide, and noormal
+    if operation == "subtract":
+        # Subtract x from y, take the average
+        df_filtered["Difference"] = df_filtered[y] - df_filtered[dummy_x]
+        mean_result = df_filtered.groupby("Connections")["Difference"].mean()
+        
+    elif operation == "divide":
+        # Divide y by x, take the average
+        df_filtered["Ratio"] = df_filtered[y]/df_filtered[dummy_x]
+        mean_result = df_filtered.groupby("Connections")["Ratio"].mean()
+
+    else:
+        # Default behavior for mean of y grouped by x
+        mean_result = df_filtered.groupby(x)[y].mean()        
+
 
     # Create the bar graph
-    plt.bar(mean_percent.index, mean_percent.values, color='skyblue')
+    plt.bar(mean_result.index, mean_result.values, color='skyblue')
+    plt.title(plot_title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.savefig(plot_title, dpi=300, bbox_inches='tight')
 
-    # Add title and labels
-    plt.title('Mean Percent of 1\'s by Number of Connections')
-    plt.xlabel('Number of Connections')
-    plt.ylabel('Mean Percent of 1\'s')
+
 
     # Show the plot
-    plt.xticks(mean_percent.index)  # Show ticks for each connection
-    plt.grid(axis='y', linestyle='--', alpha=0.7)  # Add grid lines for better visibility
+    plt.xticks(mean_result.index)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.show()
 
+    return mean_result.tolist()
+
+               
+
+
+
+def CreateViolinPlot(df, x, y, connections=None, operation=None, dummy_x=None, plot_title=None):
+  """
+  Creates a violin plot from the given DataFrame with optional filtering and operations.
+  
+  Parameters:
+      df (pd.DataFrame): The input DataFrame.
+      x (str): The column for the x-axis.
+      y (str): The column for the y-axis.
+      connections (int): Filter for 'Connections' column (0 for no filtering).
+      operation (str): Operation to perform ('subtract' or 'divide').
+      dummy_x (str): The column to use in the operation (required for 'subtract' or 'divide').
+      plot_title (str): Title for the plot.
+      
+  Returns:
+      None
+  """
+  df_filtered = df.copy()
+
+  # Filter by 'Connections' if specified
+  if connections is not None:
+      df_filtered = df_filtered[df_filtered['Connections'] == connections]
+
+  # If no data remains after filtering, return early
+  if df_filtered.empty:
+      print("No data points fall within the specified filters.")
+      return
+
+  # Perform the specified operation
+  if operation == "subtract":
+      if dummy_x is None:
+          print("dummy_x must be specified for 'subtract' operation.")
+          return
+      df_filtered["Difference"] = df_filtered[y] - df_filtered[dummy_x]
+      plot_data = df_filtered.groupby(x)["Difference"].apply(list)
+
+  elif operation == "divide":
+      if dummy_x is None:
+          print("dummy_x must be specified for 'divide' operation.")
+          return
+      df_filtered["Ratio"] = df_filtered[y] / df_filtered[dummy_x]
+      plot_data = df_filtered.groupby(x)["Ratio"].apply(list)
+
+  else:
+      # Default behavior: use y values grouped by x
+      plot_data = df_filtered.groupby(x)[y].apply(list)
+
+  # Create the violin plot
+  plt.figure(figsize=(10, 6))
+  plt.violinplot(plot_data, showmeans=True, showmedians=True)
+
+  # Set x-ticks and labels
+  x_categories = plot_data.index
+  plt.xticks(ticks=np.arange(1, len(x_categories) + 1), labels=x_categories)
+  plt.title(plot_title if plot_title else f'Violin Plot of {y} vs {x}')
+  plt.xlabel(x)
+  plt.ylabel(operation.capitalize() if operation else y)
+  plt.grid(axis='y', linestyle='--', alpha=0.7)
+  plt.savefig(plot_title if plot_title else f'Violin Plot of {y} vs {x}', dpi=300, bbox_inches='tight')
+  plt.show()
+  
     
 
-#x =  'Number of Connections'
-#y = 'Percent of 1\'s'
+def CountPercentIntervalsList(df, percent_column='Percent of 1\'s', bin_size=10):
+    """
+    Counts the number of items within percent intervals and returns a list.
+
+    Parameters:
+        df (pd.DataFrame): The DataFrame containing the data.
+        percent_column (str): The column name for percent values.
+        bin_size (int): The size of each interval (e.g., 10 for 0-10%, 10-20%).
+
+    Returns:
+        list: A list of counts for each interval.
+    """
+    # Define the bin edges from 0% to 100% with the specified bin size
+    bin_edges = list(range(0, 101, bin_size))
+    
+    # Use pd.cut to create bins and include lowest boundary in the first interval
+    counts = pd.cut(df[percent_column], bins=bin_edges, right=True, include_lowest=True).value_counts().sort_index()
+    
+    # Return the counts as a list
+    return counts.tolist()
+
+def count_networks_by_attractors(df, attractor):
+    """
+    Counts the number of networks with 1 attractor, 2 attractors, etc., for F1.
+
+    Parameters:
+        df (pd.DataFrame): The DataFrame containing the data. It should have a column named 'F_1 Attractors'.
+
+    Returns:
+        list: A list where the i-th element represents the count of networks with (i+1) attractors.
+    """
+    # Ensure the column is numeric
+    df[attractor] = pd.to_numeric(df[attractor], errors='coerce')
+    df = df.dropna(subset=[attractor])
+    df[attractor] = df[attractor].astype(int)
+
+    # Get the maximum number of attractors in the data
+    max_attractors = df[attractor].max()
+    
+    # Initialize a list to store counts for each number of attractors
+    counts = [0] * max_attractors
+
+    # Iterate through each row and count occurrences
+    for num in df[attractor]:
+        counts[num - 1] += 1
+
+    return counts
+
+
+
+
+
+# Example usage:
+# Assuming df is your DataFrame
+#percent_counts = CountPercentIntervalsList(df)
+#print(percent_counts)
+
+#df1 = pd.read_csv('New_combined_connections_1.csv')
+#df2 = pd.read_csv('New_combined_connections_17.csv')
+#combined = pd.concat([df1, df2])
+#combined.to_csv('New_combined_connections_1.csv', index = False)
+
+
+
+
