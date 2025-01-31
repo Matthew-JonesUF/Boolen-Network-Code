@@ -684,8 +684,25 @@ def count_networks_by_attractors(df, attractor):
 
     return counts
 
+df = pd.read_csv('AllData.csv')
 
+#Generates the average y values on the Line graph
+y_values = CreateBarGraph(df, 'Attractor 2', 'Attractor 3', 'Mean Total Attractors vs Downstream Attractors', 'Downstream Attractors', 'Mean Total Attractors')
 
+#Remove values after 6th value of y_valuess
+i = 0
+Temp = list()
+while i < 6:
+    Temp.append(y_values[i])
+    i += 1
+
+#Make x_values
+
+x_values = [1, 2, 3, 4, 5, 6]
+
+#Make line graph
+
+CreateLineGraph(df, 'Attractor 2', 'Attractor 3', x_values, y_values, 'Downstream Attractors', 'Mean Total Attractors',  'Mean Total Attractors vs Downstream Attractors')
 
 #pd.read_csv()
 
