@@ -31,6 +31,7 @@ import random
 import csv
 import pandas as pd
 import json
+import ast
 
 
 
@@ -271,10 +272,32 @@ def Connect_Networks(df, Num_of_Networks):
         Network1 = random.randint(0, 10)
         Network2 = random.randint(0, 10)
         
+        
+        # Generate the networks
+        [F_1, I_1, F_2, I_2] = [
+            df.loc[Network1, 'F'],
+            df.loc[Network1, 'I'],
+            df.loc[Network2, 'F'],
+            df.loc[Network2, 'I']
+        ]
+        
+        # Convert from string to list
+        [F_1_processed, I_1_processed, F_2_processed, I_2_processed] = [
+            F_1.replace("array(", "").replace(")", ""),
+            I_1.replace("array(", "").replace(")", ""),
+            F_2.replace("array(", "").replace(")", ""),
+            I_2.replace("array(", "").replace(")", "")
+        ]
+        
+        [F_1, I_1, F_2, I_2] = [
+            ast.literal_eval(F_1_processed),
+            ast.literal_eval(I_1_processed),
+            ast.literal_eval(F_2_processed),
+            ast.literal_eval(I_2_processed)
+        ]
 
-        [F_1, I_1, F_2, I_2] = [df.loc[Network1, 'F'], df.loc[Network1, 'I'], df.loc[Network2, 'F'], df.loc[Network2, 'I']]
 
-    
+        
         for connections in range(1, len(F_1) * len(F_2)): #Repeat for connections between min and max connections (1 and N^2. len(F_1) = N)
         
                 #Make copies, ensures orignials are not changed
@@ -398,8 +421,7 @@ def RandomCanSimulation(N_1, n_1, N_2, n_2):
     # Return the DataFrame for further use in Python
     return df
 
-# Example usage:
-# df = RandomCanSimulation4(N_1, n_1, N_2, n_2)
+
 
 
 
@@ -410,21 +432,6 @@ def RandomCanSimulation(N_1, n_1, N_2, n_2):
 
 
 
-'''
-def CreateLineGraph(x_values, y_values, x_label, y_label, plot_title):
-    plt.figure(figsize=(8, 6))
-    
-    # Plot the data
-    plt.plot(x_values, y_values, marker='o', linestyle='-', color='b')
-    
-    # Add labels and title
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
-    plt.title(plot_title)
-    plt.savefig(plot_title,  dpi=300, bbox_inches='tight')
-    # Show the plot
-    plt.show()
-'''
 
 
 
@@ -433,7 +440,7 @@ def CreateLineGraph(x_values, y_values, x_label, y_label, plot_title):
 
 
 
-def CreateLineGraph(x_values, y_values, x_label, y_label, plot_title):
+def CreateLineGraph(df, df_x, df_y, x_values, y_values, x_label, y_label, plot_title):
     plt.figure(figsize=(8, 6))
     
     # Plot the data
@@ -449,8 +456,16 @@ def CreateLineGraph(x_values, y_values, x_label, y_label, plot_title):
     ss_total = np.sum((y_values - y_mean) ** 2)  # Total sum of squares
     ss_residual = np.sum((y_values - fitted_line) ** 2)  # Residual sum of squares
     r_squared = 1 - (ss_residual / ss_total)
+    
+    
+    #Calculate the Correlation Coefficient
+    x = df[df_x]
+    y = df[df_y]
+    
+    correlation_matrix = np.corrcoef(x, y)
+    correlation_coefficient = correlation_matrix[0, 1]
 
-    # Display R² value on the plot in a better position and style
+    # Display R² value on the plot
     plt.annotate(f'R² = {r_squared:.4f}', 
                  xy=(0.70, 0.10),  # Adjusted position to bottom-right
                  xycoords='axes fraction', 
@@ -458,6 +473,14 @@ def CreateLineGraph(x_values, y_values, x_label, y_label, plot_title):
                  color='black', 
                  bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
     
+    #Display the Corrrelation Coeefficient on the plot
+    plt.annotate(f'r = {correlation_coefficient:.4f}', 
+                 xy=(0.70, 0.18),  # Position it above R²
+                 xycoords='axes fraction', 
+                 fontsize=14, 
+                 color='black', 
+                 bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
+
     # Add labels and title
     plt.xlabel(x_label)
     plt.ylabel(y_label)
@@ -664,16 +687,8 @@ def count_networks_by_attractors(df, attractor):
 
 
 
+#pd.read_csv()
 
-# Example usage:
-# Assuming df is your DataFrame
-#percent_counts = CountPercentIntervalsList(df)
-#print(percent_counts)
-
-#df1 = pd.read_csv('New_combined_connections_1.csv')
-#df2 = pd.read_csv('New_combined_connections_17.csv')
-#combined = pd.concat([df1, df2])
-#combined.to_csv('New_combined_connections_1.csv', index = False)
 
 
 
